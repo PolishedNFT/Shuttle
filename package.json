@@ -1,0 +1,16 @@
+{
+  "name": "shuttle",
+  "version": "1.0.0",
+  "description": "Steamline uploading images & metadata to ipfs storage",
+  "main": "./src/main.js",
+  "scripts": {
+    "start": "node ./src/main.js"
+  },
+  "author": "PolishedNFT",
+  "license": "MIT",
+  "dependencies": {
+    "ipfs-http-client": "56.0.1",
+    "mime": "3.0.0",
+    "nft.storage": "6.0.0"
+  }
+}
