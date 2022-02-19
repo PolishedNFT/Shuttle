@@ -3,10 +3,11 @@ const mime = require('mime');
 const fs = require('fs');
 const path = require('path');
 const { performance } = require('perf_hooks');
+require('dotenv').config();
 
 const baseUri = 'ipfs://';
 
-const NFT_STORAGE_KEY = '';
+const NFT_STORAGE_KEY = process.env.NFT_STORAGE_KEY;
 
 async function fileFromPath(filePath) {
 	const content = await fs.promises.readFile(filePath);
@@ -14,17 +15,20 @@ async function fileFromPath(filePath) {
 	return new File([content], path.basename(filePath), { type });
 }
 
-async function loadManifest(filePath) {
-	const content = await fs.promises.readFile(filePath);
+async function getManifest(workDir) {
+	const content = await fs.promises.readFile(`${workDir}/manifest.json`);
 	return JSON.parse(content);
 }
 
-function getImportDir() {
-	const arg = process.argv[2];
-	const lastChar = arg[arg.length - 1];
+function getWordDir() {
+	if (process.argv.length !== 3) {
+		console.log('[?] Usage: npm run start -- ../polished/work/dir/');
+		throw new Error('Invalid amount of arguments passed.');
+	}
 
-	if (lastChar === '/' && arg.length > 1) {
-		return arg.slice(0, arg.length - 1);
+	let arg = process.argv[2];
+	if (arg.length > 1 && arg[arg.length - 1] === '/') {
+		arg = arg.slice(0, arg.length - 1);
 	}
 
 	return arg;
@@ -35,19 +39,19 @@ async function main() {
 	console.log('---------------------------------');
 
 	if (process.argv.length !== 3) {
-		console.log('[?] Usage: npm run start /path/to/input/');
+		console.log('[?] Usage: npm run start /polished/work/dir/');
 		return;
 	}
 
 	const startTime = performance.now();
 
-	const importDir = getImportDir();
+	const workDir = getWordDir();
 
-	if (!fs.existsSync(`${importDir}/metadata`)) {
-		fs.mkdirSync(`${importDir}/metadata`);
+	if (!fs.existsSync(`${workDir}/metadata`)) {
+		fs.mkdirSync(`${workDir}/metadata`);
 	}
 
-	const manifest = await loadManifest(`${importDir}/manifest.json`);
+	const manifest = await getManifest(workDir);
 	if (!manifest || !manifest.metadata) {
 		console.log('[!] Failed to load manifest file');
 		return;
@@ -63,7 +67,7 @@ async function main() {
 	const images = [];
 
 	for (const { tokenId } of manifest.metadata) {
-		images.push(await fileFromPath(`${importDir}/images/${tokenId}.png`));
+		images.push(await fileFromPath(`${workDir}/images/${tokenId}.png`));
 		console.log(`[+] Selected image ${tokenId}`);
 	}
 
@@ -85,7 +89,7 @@ async function main() {
 		};
 
 		const serializedMetadata = JSON.stringify(manifest.metadata[i], null, 2);
-		const metadataPath = `${importDir}/metadata/${tokenId}`;
+		const metadataPath = `${workDir}/metadata/${tokenId}`;
 
 		fs.writeFileSync(metadataPath, serializedMetadata);
 		console.log(`[+] Created metadata file for ${tokenId}`);
@@ -109,16 +113,16 @@ async function main() {
 	};
 
 	const serializedManifest = JSON.stringify(newManifest, null, 2);
-	fs.writeFileSync(`${importDir}/manifest.json`, serializedManifest);
+	fs.writeFileSync(`${workDir}/manifest.json`, serializedManifest);
 
 	console.log('[=] Updated manifest file.');
 
 	const endTime = (Math.abs(performance.now() - startTime) / 1000).toFixed(4);
 
 	console.log('---------------------------------');
-	console.log(`[$] Successful Shuttled ${manifest.metadata.length} NFTs in ${endTime}s`);
+	console.log(`[$] Successful Shuttled ${newManifest.metadata.length} NFTs in ${endTime}s`);
 	console.log(`[#] Image: ${baseUri}${imagesCid} | https://ipfs.io/ipfs/${imagesCid}`);
-	console.log(`[#] Metadata: ${manifest.baseUri} | https://ipfs.io/ipfs/${metadataCid}`);
+	console.log(`[#] Metadata: ${newManifest.baseUri} | https://ipfs.io/ipfs/${metadataCid}`);
 }
 
 main().catch(err => {

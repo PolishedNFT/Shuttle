@@ -9,6 +9,7 @@
   "author": "PolishedNFT",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "16.0.0",
     "ipfs-http-client": "56.0.1",
     "mime": "3.0.0",
     "nft.storage": "6.0.0"
